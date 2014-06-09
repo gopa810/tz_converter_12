@@ -31,7 +31,8 @@ namespace tz_converter_12
 
                 XmlDocument doc = new XmlDocument();
 
-                doc.Load("d:\\gcal\\GCAL\\GCAL.Base\\Files\\Timezones.xml");
+                //doc.Load("d:\\gcal\\GCAL\\GCAL.Base\\Files\\Timezones.xml");
+                doc.Load("c:\\Users\\peter.kollath\\Documents\\GitHub\\GCAL\\GCAL.Base\\Files\\Timezones.xml");
 
                 tzdoc = doc;
             }
@@ -70,7 +71,7 @@ namespace tz_converter_12
                         try
                         {
                             GPTimeZoneOld.Transition trans = tz.Transitions[i];
-                            DateTime dt = trans.getDateTime();
+                            DateTime dt = trans.getDateTime(tz.OffsetSeconds);
                             c1 = tz.getTransCountForYear(dt.Year);
                             if (c1 == 2)
                             {
@@ -81,7 +82,7 @@ namespace tz_converter_12
                                 log.Add("More than 2 transition in year " + dt.Year + " for timezone " + tz.Name + "\n");
                             }
 
-                            trans.Rule1 = string.Format("{0}-{1}", dt.Month, dt.Day);
+                            //trans.Rule1 = string.Format("{0}-{1}", dt.Month, dt.Day);
 /*                            DateTime dta = new DateTime(dt.Year, dt.Month, 1);
                             int womFdm = (dayOfWeek(dta.DayOfWeek) + 6)%7;
                             int virt = 1 - womFdm;
@@ -111,7 +112,7 @@ namespace tz_converter_12
                             }
                             if (wom > 5)
                                 wom = 5; 
-                            trans.Rule2 = string.Format("{0}-{1}-{2}", dt.Month, wom, dayOfWeek(dt.DayOfWeek));
+                            trans.Rule2 = string.Format("{0}-{1}-{2}-{3:00}", dt.Month, wom, dayOfWeek(dt.DayOfWeek), dt.Hour);
 
                             if (trans.Dst == true)
                             {
@@ -191,7 +192,10 @@ namespace tz_converter_12
                 }
                 for (int u = 0; u < tz.Rules.Count; u++)
                 {
-                    if (tz.Rules[u].YearEnd - tz.Rules[u].YearStart < 4)
+                    if (tz.Rules[u].YearEnd > 2050)
+                        tz.Rules[u].YearEnd = 2200;
+                    if ((tz.Rules[u].YearEnd - tz.Rules[u].YearStart < 4)
+                        )
                     {
                         tz.Rules.RemoveAt(u);
                         u--;
@@ -200,6 +204,13 @@ namespace tz_converter_12
                 foreach (GPTimeZoneOld.Rule rule in tz.Rules)
                 {
                     tz.RemoveTransitionsForRule(rule);
+                }
+                for (int u = tz.Transitions.Count - 1; u >= 0; u--)
+                {
+                    if (tz.Transitions[u].OffsetInSeconds == tz.OffsetSeconds)
+                    {
+                        tz.Transitions.RemoveAt(u);
+                    }
                 }
             }
 
@@ -289,7 +300,7 @@ namespace tz_converter_12
                                     int dst = 0;
                                     int.TryParse(subs.GetAttribute("dst"), out dst);
                                     trans.Dst = ((dst == 1) ? true : false);
-                                    if (trans.Dst == false && tzone.OffsetSeconds == 0)
+                                    if (trans.Dst == false)
                                     {
                                         tzone.OffsetSeconds = trans.OffsetInSeconds;
                                     }
@@ -334,9 +345,9 @@ namespace tz_converter_12
                 tzoneNode.SetAttribute("normalAbbr", tzone.SymbolNormalTime);
                 tzoneNode.SetAttribute("dstAbbr", tzone.SymbolDaylightTime);
                 tzoneNode.SetAttribute("offset", (tzone.OffsetSeconds / 60).ToString());
+                tzoneNode.SetAttribute("dst", tzone.UsingDst.ToString());
 
                 child = doc.CreateElement("name");
-                child.SetAttribute("dst", tzone.UsingDst.ToString());
                 tzoneNode.AppendChild(child);
                 child.InnerText = tzone.Name;
 
@@ -345,12 +356,13 @@ namespace tz_converter_12
                     tzoneTransNode = doc.CreateElement("transition");
                     tzoneNode.AppendChild(tzoneTransNode);
 
-                    tzoneTransNode.SetAttribute("pair", trans.Paired ? "1" : "0");
-                    tzoneTransNode.SetAttribute("rule2", trans.Rule2);
-                    tzoneTransNode.SetAttribute("date", trans.getDateString());
+                    //tzoneTransNode.SetAttribute("pair", trans.Paired ? "1" : "0");
+                    //tzoneTransNode.SetAttribute("rule", trans.Rule2);
+                    tzoneTransNode.SetAttribute("date", trans.getDateStringx(trans.Timestamp, tzone.OffsetSeconds));
+                    tzoneTransNode.SetAttribute("datend", trans.getDateStringx(trans.TimestampEnd, tzone.OffsetSeconds));
                     tzoneTransNode.SetAttribute("offset", (trans.OffsetInSeconds / 60).ToString());
                     //tzoneTransNode.SetAttribute("abbr", trans.Abbreviation);
-                    tzoneTransNode.SetAttribute("dst", (trans.Dst ? "1" : "0"));
+                    //tzoneTransNode.SetAttribute("dst", (trans.Dst ? "1" : "0"));
                 }
 
                 foreach (GPTimeZoneOld.Rule rule in tzone.Rules)
@@ -362,8 +374,8 @@ namespace tz_converter_12
                     child.SetAttribute("ruleEnd", rule.RuleTextEnd);
                     child.SetAttribute("yearStart", rule.YearStart.ToString());
                     child.SetAttribute("yearEnd", rule.YearEnd.ToString());
-                    child.SetAttribute("offsetStart", rule.OffsetStart.ToString());
-                    child.SetAttribute("offsetEnd", rule.OffsetEnd.ToString());
+                    child.SetAttribute("offset", rule.OffsetStart.ToString());
+                    //child.SetAttribute("offsetEnd", rule.OffsetEnd.ToString());
                 }
             }
 

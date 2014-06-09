@@ -37,7 +37,8 @@ namespace tz_converter_12
                 }
                 listBox1.EndUpdate();
 
-                oldList.saveXml("d:\\Temp\\Timezones-q.xml");
+                oldList.saveXml("c:\\Temp\\Timezones-q.xml");
+                //oldList.saveXml("d:\\Temp\\Timezones-q.xml");
             }
         }
 

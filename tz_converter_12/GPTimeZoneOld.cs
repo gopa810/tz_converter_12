@@ -40,8 +40,6 @@ namespace tz_converter_12
 
             public bool Paired = false;
 
-            public string Rule1 = "";
-
             public string Rule2 = "";
 
             public bool Contains(long time)
@@ -61,6 +59,21 @@ namespace tz_converter_12
                 GPTimestamp ts = new GPTimestamp(Timestamp);
                 return string.Format("{0:0000}-{1:00}-{2:00} {3:00}:{4:00}:{5:00} +0000", ts.year, ts.month, ts.day, ts.hour, 0, 0);
             }
+            public string getDateString2()
+            {
+                //1971-04-25 23:00:00 +0000
+                GPTimestamp ts = new GPTimestamp(TimestampEnd);
+                return string.Format("{0:0000}-{1:00}-{2:00} {3:00}:{4:00}:{5:00} +0000", ts.year, ts.month, ts.day, ts.hour, 0, 0);
+            }
+
+            public string getDateStringx(long tsval, int offset)
+            {
+                //1971-04-25 23:00:00 +0000
+                GPTimestamp ts = new GPTimestamp(tsval);
+                ts.subtractSeconds(-offset);
+                return string.Format("{0:0000}-{1:00}-{2:00}-{3:00}-{4:00}-{5:00}", ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second);
+            }
+
             public void setDateString(string value)
             {
                     long y, m, d, h, mn, sc, offm, offs;
@@ -88,12 +101,19 @@ namespace tz_converter_12
                     ts.minute, ts.second);
             }
 
+            public DateTime getDateTime(int off)
+            {
+                GPTimestamp ts = new GPTimestamp(Timestamp);
+                ts.subtractSeconds(-off);
+                return new DateTime(ts.year, ts.month, ts.day, ts.hour,
+                    ts.minute, ts.second);
+            }
         }
 
         public int Id = 0;
         public bool UsingDst = false;
         public string Name = string.Empty;
-        public long OffsetSeconds = 0;
+        public int OffsetSeconds = 0;
         public List<Transition> Transitions = new List<Transition>();
         public List<Rule> Rules = new List<Rule>();
         private Transition lastActiveTransition = null;
@@ -212,10 +232,24 @@ namespace tz_converter_12
 
         public void RefreshEnds()
         {
+            GPTimestamp ts;
+            int offset = -1;
             for (int i = 1; i < Transitions.Count; i++)
             {
+                ts = new GPTimestamp(Transitions[i].Timestamp);
                 Transitions[i - 1].TimestampEnd = Transitions[i].Timestamp;
+                if (ts.year >= 2014)
+                {
+                    if (Transitions[i].OffsetInSeconds < offset || offset < 0)
+                        offset = Transitions[i].OffsetInSeconds;
+                }
             }
+            foreach (Transition tr in Transitions)
+            {
+                tr.Dst = (tr.OffsetInSeconds != offset);
+            }
+
+            OffsetSeconds = offset;
         }
 
         public void AddTransition(Transition trans)
